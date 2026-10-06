@@ -1,0 +1,1927 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aposta Perdida — Protótipo Educativo Anti-BET</title>
+  <style>
+    :root{
+      --bg:#070812;
+      --surface:#10131f;
+      --surface-2:#151928;
+      --surface-3:#1a2033;
+      --border:rgba(255,255,255,.10);
+      --border-strong:rgba(255,255,255,.18);
+      --text:#fff6e6;
+      --muted:#b9b2c8;
+      --soft:#847d96;
+      --gold:#ffd35a;
+      --orange:#ff9f1c;
+      --red:#ff3864;
+      --red-soft:#ff6d87;
+      --cyan:#66dcff;
+      --green:#53e39a;
+      --shadow:0 24px 80px rgba(0,0,0,.42);
+      --radius:22px;
+      --radius-sm:14px;
+      --mono:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    *{box-sizing:border-box}
+    html,body{min-height:100%}
+    body{
+      margin:0;
+      color:var(--text);
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(255,211,90,.14), transparent 26%),
+        radial-gradient(circle at 82% 10%, rgba(255,56,100,.16), transparent 26%),
+        radial-gradient(circle at 55% 100%, rgba(102,220,255,.10), transparent 34%),
+        linear-gradient(145deg, #070812, #0f0a17 55%, #060812);
+      overflow:hidden;
+    }
+
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      opacity:.45;
+      background-image:
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size:44px 44px;
+      mask-image:linear-gradient(to bottom, #000, transparent 92%);
+    }
+
+    button,input{font:inherit}
+    button{cursor:pointer}
+    a{color:inherit}
+
+    .app{
+      height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .topbar{
+      height:76px;
+      flex:0 0 auto;
+      border-bottom:1px solid var(--border);
+      background:rgba(7,8,18,.72);
+      backdrop-filter:blur(18px);
+      display:flex;
+      align-items:center;
+      position:relative;
+      z-index:10;
+    }
+
+    .wrap{
+      width:min(1220px, calc(100% - 36px));
+      margin-inline:auto;
+    }
+
+    .topbar .wrap{
+      display:flex;
+      align-items:center;
+      gap:18px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:220px;
+    }
+
+    .brand-mark{
+      width:42px;
+      height:42px;
+      border-radius:15px;
+      background:
+        linear-gradient(135deg, rgba(255,211,90,.95), rgba(255,56,100,.95)),
+        #151928;
+      box-shadow:0 0 30px rgba(255,56,100,.18);
+      position:relative;
+    }
+
+    .brand-mark::after{
+      content:"!";
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      color:#17131d;
+      font-weight:1000;
+      font-size:1.35rem;
+    }
+
+    .brand strong{display:block; font-size:1rem; letter-spacing:.02em}
+    .brand span{display:block; font-size:.74rem; color:var(--muted); margin-top:1px}
+
+    .nav{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex:1;
+      overflow:auto;
+      scrollbar-width:none;
+    }
+    .nav::-webkit-scrollbar{display:none}
+
+    .nav-btn{
+      border:1px solid var(--border);
+      color:var(--muted);
+      background:rgba(255,255,255,.045);
+      border-radius:999px;
+      padding:9px 13px;
+      white-space:nowrap;
+      transition:.2s ease;
+      font-weight:800;
+      font-size:.84rem;
+    }
+
+    .nav-btn:hover,.nav-btn.active{
+      color:var(--text);
+      border-color:rgba(255,211,90,.35);
+      background:rgba(255,211,90,.10);
+    }
+
+    .mini-status{
+      display:flex;
+      gap:8px;
+    }
+
+    .mini{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.05);
+      border-radius:13px;
+      padding:8px 10px;
+      min-width:82px;
+    }
+
+    .mini span{display:block; color:var(--soft); font-size:.68rem; text-transform:uppercase; letter-spacing:.09em}
+    .mini strong{display:block; color:var(--gold); line-height:1.05}
+
+    main{
+      flex:1;
+      min-height:0;
+      position:relative;
+    }
+
+    .page{
+      display:none;
+      height:calc(100vh - 76px);
+      padding:22px 0;
+      overflow:auto;
+    }
+    .page.active{display:block}
+
+    .page-grid{
+      min-height:calc(100vh - 120px);
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:18px;
+      align-items:stretch;
+    }
+
+    .menu-grid{grid-template-columns:1.05fr .95fr}
+    .bet-grid{grid-template-columns:minmax(0,1.05fr) minmax(390px,.95fr)}
+    .awareness-grid,.report-grid{grid-template-columns:1fr .9fr}
+
+    .card{
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.035));
+      box-shadow:var(--shadow);
+      border-radius:var(--radius);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .card::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:inherit;
+      pointer-events:none;
+      background:linear-gradient(135deg, rgba(255,211,90,.10), transparent 32%, rgba(102,220,255,.07));
+      opacity:.7;
+    }
+
+    .card-inner{
+      position:relative;
+      z-index:1;
+      padding:22px;
+      height:100%;
+    }
+
+    .stack{display:flex; flex-direction:column; gap:14px}
+    .split{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+    .scroll-soft{overflow:auto; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.24) transparent}
+
+    .eyebrow,.tag{
+      display:inline-flex;
+      align-items:center;
+      width:max-content;
+      gap:7px;
+      border:1px solid var(--border-strong);
+      border-radius:999px;
+      color:var(--muted);
+      background:rgba(255,255,255,.06);
+      font-size:.74rem;
+      font-weight:900;
+      letter-spacing:.07em;
+      text-transform:uppercase;
+      padding:7px 10px;
+    }
+
+    .tag.red{color:#ffc7d2; background:rgba(255,56,100,.12); border-color:rgba(255,56,100,.28)}
+    .tag.gold{color:#ffe8a5; background:rgba(255,211,90,.12); border-color:rgba(255,211,90,.28)}
+    .tag.cyan{color:#c8f5ff; background:rgba(102,220,255,.10); border-color:rgba(102,220,255,.24)}
+    .tag.green{color:#c9ffe1; background:rgba(83,227,154,.10); border-color:rgba(83,227,154,.24)}
+
+    h1,h2,h3,p{margin:0}
+    h1{font-size:clamp(2.6rem, 7vw, 5.8rem); line-height:.92; letter-spacing:-.07em}
+    h2{font-size:clamp(1.4rem, 2.2vw, 2.1rem); letter-spacing:-.04em; line-height:1}
+    h3{font-size:1rem; letter-spacing:-.02em}
+    p{color:var(--muted); line-height:1.58}
+    .lead{font-size:1.03rem; color:#ded7e8}
+    .tiny{font-size:.82rem; color:var(--soft)}
+
+    .gradient-text{
+      background:linear-gradient(90deg, #fff7e6, #ffd35a 42%, #ff6d87 75%, #66dcff);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+
+    .project-title-small{
+      color:#f3e3bd;
+      font-weight:850;
+      line-height:1.45;
+      max-width:840px;
+    }
+
+    .warning-band,.callout,.formula,.info-tile,.history-item{
+      border:1px solid var(--border);
+      background:rgba(0,0,0,.18);
+      border-radius:var(--radius-sm);
+    }
+
+    .warning-band{
+      display:flex;
+      gap:12px;
+      padding:14px;
+      border-color:rgba(255,56,100,.25);
+      background:rgba(255,56,100,.09);
+    }
+    .warning-icon{font-size:1.4rem; width:30px; flex:0 0 auto}
+    .warning-band b{display:block; margin-bottom:3px}
+    .warning-band p{font-size:.9rem}
+
+    .btn-row{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+    .btn{
+      border:0;
+      color:var(--text);
+      border-radius:999px;
+      padding:12px 15px;
+      font-weight:1000;
+      letter-spacing:-.02em;
+      transition:transform .18s ease, filter .18s ease, background .18s ease;
+      box-shadow:0 14px 34px rgba(0,0,0,.22);
+    }
+    .btn:hover{transform:translateY(-1px); filter:brightness(1.06)}
+    .btn:active{transform:translateY(0) scale(.99)}
+    .btn.danger{background:linear-gradient(135deg, var(--red), #ff7a18)}
+    .btn.cyan{background:linear-gradient(135deg, #1fa7ff, #66dcff); color:#06101a}
+    .btn.ghost{background:rgba(255,255,255,.08); border:1px solid var(--border); box-shadow:none}
+    .btn.slim{padding:9px 12px; font-size:.86rem}
+
+    .btn:disabled,
+    .chip:disabled,
+    input:disabled{
+      cursor:not-allowed;
+      opacity:.48;
+      transform:none !important;
+      filter:none !important;
+    }
+
+    .qa-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      width:max-content;
+      border:1px solid rgba(134,239,172,.20);
+      background:rgba(134,239,172,.08);
+      color:#dcfce7;
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:.76rem;
+      font-weight:850;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+    }
+
+    .menu-poster{
+      display:grid;
+      grid-template-rows:auto 1fr auto;
+      gap:14px;
+    }
+
+    .fake-banner{
+      min-height:150px;
+      border-radius:18px;
+      border:1px solid rgba(255,211,90,.20);
+      background:
+        linear-gradient(135deg, rgba(255,211,90,.18), rgba(255,56,100,.12)),
+        rgba(0,0,0,.20);
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-end;
+      overflow:hidden;
+      position:relative;
+    }
+
+    .fake-banner::before{
+      content:"GANHE? GANHE? GANHE?";
+      position:absolute;
+      right:-18px;
+      top:8px;
+      color:rgba(255,255,255,.06);
+      font-size:3rem;
+      font-weight:1000;
+      letter-spacing:-.08em;
+      transform:rotate(-8deg);
+    }
+
+    .fake-banner strong{font-size:1.5rem; letter-spacing:-.05em}
+    .fake-banner span{color:var(--red-soft)}
+
+    .tile-list{display:grid; gap:10px}
+    .info-tile{display:flex; gap:12px; padding:13px}
+    .info-tile .icon{font-size:1.35rem; width:30px}
+    .info-tile strong{display:block; margin-bottom:2px}
+    .info-tile p{font-size:.88rem}
+
+    .steps{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
+    .step{border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,.05); padding:10px}
+    .step b{display:block; color:var(--gold)}
+    .step span{display:block; color:var(--muted); font-size:.82rem; line-height:1.35}
+
+    .bet-workspace{
+      display:grid;
+      grid-template-rows:auto 1fr auto;
+      gap:14px;
+      height:100%;
+    }
+
+    .panel-title{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .panel-title h2{margin-top:8px}
+
+    .balance-row{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .stat-card,.balance-card,.compact-box{
+      border:1px solid var(--border);
+      border-radius:16px;
+      background:rgba(0,0,0,.18);
+      padding:13px;
+    }
+    .balance-card span,.stat-card span{display:block; font-size:.73rem; color:var(--soft); text-transform:uppercase; letter-spacing:.08em; font-weight:900}
+    .balance-card strong{display:block; font-size:2rem; color:var(--gold); letter-spacing:-.04em; margin-top:2px}
+    .stat-card strong{display:block; font-size:1.35rem; color:var(--text); margin-top:2px}
+
+    .bet-control{
+      border:1px solid var(--border);
+      border-radius:18px;
+      background:rgba(255,255,255,.045);
+      padding:14px;
+    }
+    .bet-control label{display:flex; justify-content:space-between; color:var(--muted); font-weight:900; margin-bottom:12px}
+    .bet-control output{color:var(--gold)}
+    input[type="range"]{width:100%; accent-color:var(--red)}
+
+    .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+    .chip{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.06);
+      color:var(--muted);
+      border-radius:999px;
+      padding:7px 10px;
+      font-weight:900;
+      font-size:.84rem;
+    }
+    .chip.active{color:#111; background:var(--gold); border-color:transparent}
+
+
+
+    .strategy-panel{display:grid; gap:12px}
+    .strategy-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:9px}
+    .strategy-btn{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.045);
+      color:var(--text);
+      border-radius:16px;
+      padding:12px;
+      text-align:left;
+      font-weight:950;
+      transition:.18s ease;
+    }
+    .strategy-btn small{
+      display:block;
+      color:var(--soft);
+      font-weight:700;
+      line-height:1.35;
+      margin-top:4px;
+    }
+    .strategy-btn:hover{transform:translateY(-1px); border-color:rgba(255,211,90,.30)}
+    .strategy-btn.active{
+      background:rgba(255,56,100,.13);
+      border-color:rgba(255,56,100,.42);
+      box-shadow:0 0 0 1px rgba(255,56,100,.12) inset;
+    }
+    .risk-note{
+      border:1px dashed rgba(255,211,90,.25);
+      background:rgba(255,211,90,.07);
+      border-radius:14px;
+      padding:11px;
+      color:#f2d991;
+      font-size:.86rem;
+      line-height:1.45;
+    }
+    .auto-row{display:grid; grid-template-columns:1fr 1fr; gap:9px}
+    .auto-row .btn{width:100%; box-shadow:none}
+    .round-control{
+      display:grid;
+      gap:10px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      background:rgba(255,255,255,.04);
+      padding:12px;
+    }
+    .round-control label{display:grid; gap:3px}
+    .round-control label span{font-weight:950; color:var(--text)}
+    .round-control label small{color:var(--soft); line-height:1.4}
+    .round-control-actions{display:grid; grid-template-columns:minmax(120px,.45fr) 1fr; gap:9px}
+    .round-control input[type="number"]{
+      width:100%;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:rgba(0,0,0,.20);
+      color:var(--text);
+      padding:12px 14px;
+      outline:none;
+      font-weight:900;
+    }
+    .round-control input[type="number"]:focus{border-color:rgba(125,211,252,.42)}
+    .round-control .btn{width:100%; box-shadow:none}
+
+    .meter-list{display:grid; gap:10px}
+    .metric{border:1px solid var(--border); background:rgba(255,255,255,.04); border-radius:14px; padding:10px}
+    .metric-head{display:flex; justify-content:space-between; gap:12px; color:var(--muted); font-size:.82rem; font-weight:900; margin-bottom:8px}
+    .metric-head span:last-child{color:var(--text)}
+    .bar{height:8px; border-radius:999px; overflow:hidden; background:rgba(255,255,255,.08)}
+    .bar i{display:block; height:100%; width:0%; border-radius:inherit; background:linear-gradient(90deg, var(--gold), var(--red)); transition:width .28s ease}
+    .bar.cyan i{background:linear-gradient(90deg, var(--cyan), var(--green))}
+
+    .slot-card{
+      display:grid;
+      gap:12px;
+    }
+    .slot-header{display:flex; justify-content:space-between; align-items:flex-start; gap:12px}
+    .slot-header strong{display:block; font-size:1.06rem}
+    .slot-header span:not(.tag){display:block; color:var(--soft); margin-top:3px; font-size:.84rem}
+
+    .reels{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+    }
+    .reel{
+      min-height:96px;
+      border:1px solid rgba(255,211,90,.22);
+      border-radius:18px;
+      background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.22));
+      display:grid;
+      place-items:center;
+      font-size:2.4rem;
+      box-shadow:inset 0 0 24px rgba(255,211,90,.05);
+      transition:transform .18s ease;
+    }
+    .reel.spin{animation:pop .28s ease 2}
+    @keyframes pop{50%{transform:scale(1.035)}}
+
+    .result-banner{
+      border:1px solid rgba(102,220,255,.18);
+      border-radius:18px;
+      background:rgba(102,220,255,.07);
+      padding:13px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .result-banner strong{display:block; margin-bottom:3px}
+    .result-banner p{font-size:.9rem}
+
+    .stats-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px}
+    .stat-card{padding:10px}
+    .stat-card span{font-size:.64rem}
+    .stat-card strong{font-size:1.15rem}
+
+    .chart-box{
+      height:110px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      background:rgba(0,0,0,.18);
+      padding:8px;
+    }
+    canvas{display:block; width:100%; height:100%}
+
+    .history-list{display:grid; gap:7px; max-height:118px; overflow:auto; padding-right:3px}
+    .history-item{display:flex; justify-content:space-between; gap:8px; padding:9px 10px; font-size:.82rem; color:var(--muted)}
+    .history-item b{color:var(--text)}
+
+    .live-code-card .card-inner{
+      display:grid;
+      grid-template-rows:auto 1fr auto;
+      gap:12px;
+    }
+    .code-note{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+    .formula{padding:10px}
+    .formula strong{display:block; font-size:.8rem; margin-bottom:5px}
+    .formula code{font-family:var(--mono); color:#d8f8ff; font-size:.77rem; line-height:1.45}
+
+    pre{
+      margin:0;
+      border:1px solid rgba(102,220,255,.18);
+      background:#070a10;
+      color:#dceeff;
+      border-radius:18px;
+      padding:16px;
+      overflow:auto;
+      font-family:var(--mono);
+      font-size:.78rem;
+      line-height:1.55;
+      min-height:0;
+      white-space:pre-wrap;
+    }
+    .ok{color:#8affbd; font-weight:900}
+    .hot{color:#ffe184; font-weight:900}
+    .danger-code{color:#ff8da0; font-weight:900}
+    .muted-code{color:#8794a8}
+
+    .awareness-card-list{display:grid; gap:10px}
+    .awareness-card{
+      border:1px solid var(--border);
+      border-radius:18px;
+      background:rgba(255,255,255,.045);
+      padding:15px;
+    }
+    .awareness-card strong{display:block; margin-bottom:5px}
+
+    .report-box{
+      display:grid;
+      gap:12px;
+    }
+
+    .footer-note{
+      color:var(--soft);
+      font-size:.8rem;
+      line-height:1.45;
+    }
+
+    @media (max-width:1050px){
+      body{overflow:auto}
+      .app{height:auto; min-height:100vh}
+      .topbar{height:auto; padding:12px 0}
+      .topbar .wrap{align-items:flex-start; flex-wrap:wrap}
+      .brand{min-width:0; flex:1}
+      .nav{order:3; flex-basis:100%}
+      .mini-status{display:none}
+      .page{height:auto; min-height:calc(100vh - 90px); overflow:visible}
+      .page-grid,.menu-grid,.bet-grid,.awareness-grid,.report-grid{grid-template-columns:1fr; min-height:0}
+      .live-code-card .card-inner{min-height:620px}
+    }
+
+    @media (max-width:650px){
+      .wrap{width:min(100% - 22px, 1220px)}
+      .card-inner{padding:16px}
+      .split,.balance-row,.stats-grid,.steps,.code-note,.strategy-grid,.auto-row,.round-control-actions{grid-template-columns:1fr}
+      .reel{min-height:78px; font-size:2rem}
+      .btn{width:100%; justify-content:center}
+      .btn-row{display:grid; grid-template-columns:1fr}
+    }
+
+    /* Ajuste visual: versão mais limpa, séria e com foco anti-BET */
+    body{
+      background:
+        radial-gradient(circle at 20% 0%, rgba(255,49,86,.12), transparent 30%),
+        radial-gradient(circle at 92% 18%, rgba(255,211,90,.08), transparent 28%),
+        linear-gradient(135deg, #05060a 0%, #0a0c14 55%, #05060a 100%);
+    }
+    body::before{opacity:.22; background-size:56px 56px}
+    .topbar{
+      background:rgba(5,6,10,.86);
+      border-bottom-color:rgba(255,255,255,.08);
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.058), rgba(255,255,255,.026));
+      box-shadow:0 18px 55px rgba(0,0,0,.36);
+      border-color:rgba(255,255,255,.09);
+    }
+    .card::before{opacity:.38}
+    .fake-banner{
+      border-color:rgba(255,56,100,.26);
+      background:
+        linear-gradient(135deg, rgba(255,56,100,.16), rgba(255,211,90,.08)),
+        rgba(0,0,0,.24);
+    }
+    .fake-banner::before{
+      content:"NÃO CAIA NISSO";
+      font-size:2.45rem;
+      right:-8px;
+      color:rgba(255,255,255,.055);
+    }
+    .warning-band{
+      background:linear-gradient(135deg, rgba(255,56,100,.13), rgba(255,56,100,.055));
+      border-color:rgba(255,56,100,.33);
+    }
+    .btn.danger{
+      background:linear-gradient(135deg, #ff3156, #c9153a);
+    }
+    .btn.cyan{background:linear-gradient(135deg, #76e4ff, #b8f4ff)}
+    .nav-btn.active{
+      background:rgba(255,56,100,.12);
+      border-color:rgba(255,56,100,.32);
+    }
+    .balance-card strong, .mini strong{color:#ffd35a}
+    .reel{
+      background:linear-gradient(180deg, rgba(255,255,255,.065), rgba(0,0,0,.28));
+      border-color:rgba(255,56,100,.22);
+    }
+    .result-banner{
+      background:rgba(255,56,100,.075);
+      border-color:rgba(255,56,100,.20);
+    }
+    .awareness-card,.info-tile,.metric,.stat-card,.balance-card,.compact-box,.formula{
+      background:rgba(0,0,0,.22);
+    }
+    .lead{color:#e7deef}
+    p{color:#bdb6c9}
+
+
+    /* Tema limpo aplicado pelo ChatGPT: mais sóbrio, menos brilho e sem a paleta laranja/amarela pesada */
+    :root{
+      --bg:#0b0d12;
+      --surface:#11141b;
+      --surface-2:#151923;
+      --surface-3:#1b2130;
+      --border:rgba(226,232,240,.11);
+      --border-strong:rgba(226,232,240,.18);
+      --text:#f8fafc;
+      --muted:#aab4c3;
+      --soft:#7f8998;
+      --gold:#93c5fd;
+      --orange:#60a5fa;
+      --red:#fb7185;
+      --red-soft:#fda4af;
+      --cyan:#7dd3fc;
+      --green:#86efac;
+      --shadow:0 18px 50px rgba(0,0,0,.30);
+      --radius:18px;
+      --radius-sm:12px;
+    }
+
+    body{
+      background:
+        radial-gradient(circle at 20% -10%, rgba(125,211,252,.10), transparent 34%),
+        linear-gradient(135deg, #080a0f 0%, #0d1118 50%, #080a0f 100%) !important;
+      color:var(--text);
+    }
+
+    body::before{
+      opacity:.08 !important;
+      background-size:72px 72px !important;
+    }
+
+    .topbar{
+      height:70px;
+      background:rgba(8,10,15,.88) !important;
+      border-bottom:1px solid rgba(226,232,240,.08) !important;
+      backdrop-filter:blur(16px);
+    }
+
+    .brand-mark{
+      width:38px;
+      height:38px;
+      border-radius:12px;
+      background:linear-gradient(135deg, #1e293b, #334155) !important;
+      box-shadow:none !important;
+      border:1px solid rgba(226,232,240,.12);
+    }
+
+    .brand-mark::after{
+      color:#e2e8f0 !important;
+      font-size:1.15rem;
+    }
+
+    .brand strong{letter-spacing:0}
+    .brand span{color:#94a3b8}
+
+    .nav-btn{
+      background:rgba(148,163,184,.07) !important;
+      border-color:rgba(226,232,240,.10) !important;
+      color:#aab4c3 !important;
+      font-weight:750;
+      padding:8px 12px;
+    }
+
+    .nav-btn:hover,
+    .nav-btn.active{
+      color:#f8fafc !important;
+      border-color:rgba(125,211,252,.38) !important;
+      background:rgba(125,211,252,.11) !important;
+    }
+
+    .page{padding:18px 0}
+    .page-grid{gap:16px}
+
+    .card{
+      background:rgba(17,20,27,.76) !important;
+      border-color:rgba(226,232,240,.10) !important;
+      box-shadow:0 18px 45px rgba(0,0,0,.26) !important;
+    }
+
+    .card::before{
+      opacity:0 !important;
+    }
+
+    .card-inner{
+      padding:20px;
+    }
+
+    h1{
+      font-size:clamp(2.2rem, 6vw, 4.9rem);
+      letter-spacing:-.055em;
+    }
+
+    h2{
+      letter-spacing:-.035em;
+    }
+
+    p,.lead{
+      color:#aab4c3 !important;
+    }
+
+    .lead{
+      font-size:1rem;
+    }
+
+    .gradient-text{
+      background:none !important;
+      color:#f8fafc !important;
+      -webkit-background-clip:initial !important;
+      background-clip:initial !important;
+    }
+
+    .project-title-small{
+      color:#dbeafe !important;
+    }
+
+    .eyebrow,.tag{
+      background:rgba(148,163,184,.08) !important;
+      border-color:rgba(226,232,240,.12) !important;
+      color:#cbd5e1 !important;
+      font-weight:800;
+    }
+
+    .tag.red,
+    .tag.gold,
+    .tag.cyan,
+    .tag.green{
+      background:rgba(125,211,252,.09) !important;
+      border-color:rgba(125,211,252,.22) !important;
+      color:#dbeafe !important;
+    }
+
+    .warning-band{
+      background:rgba(251,113,133,.08) !important;
+      border-color:rgba(251,113,133,.22) !important;
+      border-radius:14px;
+    }
+
+    .warning-band b{
+      color:#f8fafc;
+    }
+
+    .warning-band p{
+      color:#aab4c3 !important;
+    }
+
+    .fake-banner{
+      min-height:132px;
+      background:
+        linear-gradient(135deg, rgba(30,41,59,.72), rgba(15,23,42,.72)),
+        rgba(0,0,0,.22) !important;
+      border-color:rgba(226,232,240,.10) !important;
+      box-shadow:none;
+    }
+
+    .fake-banner::before{
+      content:"";
+      display:none;
+    }
+
+    .fake-banner strong{
+      font-size:1.35rem;
+    }
+
+    .fake-banner span{
+      color:#bae6fd !important;
+    }
+
+    .btn{
+      box-shadow:none !important;
+      font-weight:850;
+    }
+
+    .btn.danger{
+      background:linear-gradient(135deg, #2563eb, #0ea5e9) !important;
+      color:#f8fafc !important;
+    }
+
+    .btn.cyan{
+      background:linear-gradient(135deg, #7dd3fc, #bae6fd) !important;
+      color:#0f172a !important;
+    }
+
+    .btn.ghost{
+      background:rgba(148,163,184,.08) !important;
+      border:1px solid rgba(226,232,240,.12) !important;
+      color:#e2e8f0 !important;
+    }
+
+    .info-tile,
+    .awareness-card,
+    .metric,
+    .stat-card,
+    .balance-card,
+    .compact-box,
+    .formula,
+    .warning-band,
+    .callout,
+    .history-item,
+    .bet-control,
+    .step{
+      background:rgba(15,23,42,.54) !important;
+      border-color:rgba(226,232,240,.10) !important;
+    }
+
+    .balance-card strong,
+    .mini strong,
+    .bet-control output,
+    .step b{
+      color:#93c5fd !important;
+    }
+
+    input[type="range"]{
+      accent-color:#38bdf8 !important;
+    }
+
+    .chip{
+      background:rgba(148,163,184,.08) !important;
+      color:#cbd5e1 !important;
+      border-color:rgba(226,232,240,.12) !important;
+    }
+
+    .chip.active{
+      background:#38bdf8 !important;
+      color:#082f49 !important;
+    }
+
+    .strategy-btn{
+      background:rgba(15,23,42,.58) !important;
+      border-color:rgba(226,232,240,.10) !important;
+      color:#f8fafc !important;
+    }
+
+    .strategy-btn small{
+      color:#94a3b8 !important;
+    }
+
+    .strategy-btn:hover{
+      border-color:rgba(125,211,252,.32) !important;
+    }
+
+    .strategy-btn.active{
+      background:rgba(14,165,233,.12) !important;
+      border-color:rgba(125,211,252,.36) !important;
+      box-shadow:none !important;
+    }
+
+    .risk-note{
+      background:rgba(125,211,252,.07) !important;
+      border-color:rgba(125,211,252,.20) !important;
+      color:#cbd5e1 !important;
+    }
+
+    .bar{
+      background:rgba(226,232,240,.08) !important;
+    }
+
+    .bar i,
+    .bar.cyan i{
+      background:linear-gradient(90deg, #38bdf8, #93c5fd) !important;
+    }
+
+    .reel{
+      background:rgba(15,23,42,.68) !important;
+      border-color:rgba(125,211,252,.18) !important;
+      box-shadow:none !important;
+      min-height:88px;
+    }
+
+    .result-banner{
+      background:rgba(14,165,233,.08) !important;
+      border-color:rgba(125,211,252,.20) !important;
+    }
+
+    .result-banner strong{
+      color:#f8fafc;
+    }
+
+    .mini{
+      background:rgba(148,163,184,.07) !important;
+      border-color:rgba(226,232,240,.10) !important;
+    }
+
+    pre{
+      background:#06080d !important;
+      border-color:rgba(125,211,252,.16) !important;
+      color:#dbeafe !important;
+    }
+
+    .ok{color:#86efac !important}
+    .hot{color:#93c5fd !important}
+    .danger-code{color:#fda4af !important}
+    .muted-code{color:#7f8998 !important}
+
+    .chart-box{
+      background:rgba(15,23,42,.58) !important;
+      border-color:rgba(226,232,240,.10) !important;
+    }
+
+    .footer-note,
+    .tiny{
+      color:#7f8998 !important;
+    }
+
+    @media (max-width:650px){
+      .card-inner{padding:15px}
+      .topbar{height:auto}
+    }
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="wrap">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"></div>
+          <div>
+            <strong>Aposta Perdida</strong>
+            <span>protótipo digital educativo anti-BET</span>
+          </div>
+        </div>
+
+        <nav class="nav" aria-label="Navegação principal">
+          <button class="nav-btn active" data-go="menu">Menu</button>
+          <button class="nav-btn" data-go="simulator">Simulação + Código</button>
+          <button class="nav-btn" data-go="awareness">Conscientização</button>
+          <button class="nav-btn" data-go="report">Relatório</button>
+        </nav>
+
+        <div class="mini-status" aria-label="Resumo do simulador">
+          <div class="mini"><span>Saldo</span><strong id="miniBalance">1000</strong></div>
+          <div class="mini"><span>Rodadas</span><strong id="miniRounds">0</strong></div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="page active" id="page-menu" aria-labelledby="menuTitle">
+        <div class="wrap page-grid menu-grid">
+          <article class="card">
+            <div class="card-inner stack">
+              <span class="eyebrow">⚠️ Simulação educativa • sem dinheiro real</span>
+              <h1 id="menuTitle"><span class="gradient-text">Aposta Perdida</span></h1>
+              <p class="project-title-small">
+                Protótipo Digital Educativo para Sensibilização sobre o Vício em Jogos de Azar Online entre Estudantes do Ensino Médio de Escolas Públicas de Corumbá-MS.
+              </p>
+              <p class="lead">
+                Este HTML único usa telas internas. O objetivo é mostrar, de forma direta, como uma interface chamativa pode empurrar o usuário para repetir rodadas mesmo quando a matemática trabalha contra ele.
+              </p>
+
+              <div class="warning-band">
+                <div class="warning-icon">🚫</div>
+                <div>
+                  <b>Não jogue: esta é uma simulação crítica, não entretenimento.</b>
+                  <p>As moedas são fictícias, não existe dinheiro real, não existe cadastro e nenhuma marca real é copiada. O protótipo foi ajustado para evidenciar perda provável, frustração e desgaste do saldo.</p>
+                </div>
+              </div>
+
+              <div class="btn-row">
+                <button class="btn danger" data-go="simulator">Ver como a perda acontece</button>
+                <button class="btn ghost" data-go="awareness">Ler alertas contra BETs</button>
+              </div>
+            </div>
+          </article>
+
+          <aside class="card">
+            <div class="card-inner menu-poster">
+              <div class="fake-banner">
+                <strong>Parece fácil. <span>Mas a regra foi feita para vencer você.</span></strong>
+                <p>A tela chama atenção; o saldo mostra a consequência.</p>
+              </div>
+
+              <div class="tile-list">
+                <div class="info-tile">
+                  <div class="icon">🧠</div>
+                  <div><strong>Algoritmo visível</strong><p>Na tela BET, o código aparece do lado do simulador e muda em tempo real.</p></div>
+                </div>
+                <div class="info-tile">
+                  <div class="icon">📉</div>
+                  <div><strong>Apostas maiores aceleram a perda</strong><p>Quanto maior a aposta em relação ao saldo, mais pesada fica a penalidade da rodada.</p></div>
+                </div>
+                <div class="info-tile">
+                  <div class="icon">💸</div>
+                  <div><strong>Perda esperada alta</strong><p>A matemática foi deixada mais desfavorável para mostrar que insistir tende a destruir o saldo.</p></div>
+                </div>
+                <div class="info-tile">
+                  <div class="icon">📚</div>
+                  <div><strong>Uso escolar</strong><p>Feito para apresentação, sensibilização e discussão sobre BETs entre estudantes.</p></div>
+                </div>
+              </div>
+
+              <div class="steps">
+                <div class="step"><b>1</b><span>Veja o alerta.</span></div>
+                <div class="step"><b>2</b><span>Simule sem dinheiro real.</span></div>
+                <div class="step"><b>3</b><span>Perceba a perda provável.</span></div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="page" id="page-simulator" aria-labelledby="simTitle">
+        <div class="wrap page-grid bet-grid">
+          <section class="card">
+            <div class="card-inner bet-workspace">
+              <div class="panel-title">
+                <div>
+                  <span class="tag red">Área BET fictícia</span>
+                  <h2 id="simTitle">Simulador educativo</h2>
+                </div>
+                <span class="tag gold">Sem dinheiro real</span>
+              </div>
+
+              <div class="stack scroll-soft">
+                <div class="warning-band">
+                  <div class="warning-icon">⚠️</div>
+                  <div>
+                    <b>Esta tela existe para desanimar a aposta, não para divertir.</b>
+                    <p>A aparência foi limpa e séria, mas a lógica continua dura: chance baixa, vantagem alta da casa e perda esperada quase sempre negativa.</p>
+                  </div>
+                </div>
+
+                <div class="balance-row">
+                  <div class="balance-card"><span>Moedas fictícias</span><strong id="balance">1000</strong></div>
+                  <div class="bet-control">
+                    <label for="betRange"><span>Aposta simulada</span><output id="betOutput">100</output></label>
+                    <input id="betRange" type="range" min="10" max="500" value="100" step="10" />
+                    <div class="chips">
+                      <button class="chip" data-bet="50">50</button>
+                      <button class="chip active" data-bet="100">100</button>
+                      <button class="chip" data-bet="250">250</button>
+                      <button class="chip" data-bet="500">500</button>
+                    </div>
+                  </div>
+                </div>
+
+
+                <div class="strategy-panel compact-box">
+                  <div class="slot-header">
+                    <div><strong>Mecânicas interativas educativas</strong><span id="strategyInfo">Escolha uma dinâmica para ver como a tentativa de controle pode aumentar o risco.</span></div>
+                    <span class="tag red" id="riskTag">Risco médio</span>
+                  </div>
+
+                  <div class="strategy-grid" aria-label="Estratégias simuladas educativas">
+                    <button class="strategy-btn active" data-strategy="fixed">Valor fixo<small>Mesmo sem aumentar, a repetição mantém perda esperada negativa.</small></button>
+                    <button class="strategy-btn" data-strategy="chase">Recuperar perda<small>Aumenta a aposta depois de perder e mostra o efeito bola de neve.</small></button>
+                    <button class="strategy-btn" data-strategy="double">Dobrar após perder<small>Simula a falsa ideia de que dobrar resolve prejuízo.</small></button>
+                    <button class="strategy-btn" data-strategy="impulse">Aposta impulsiva<small>Usa parte grande do saldo para mostrar risco de decisão emocional.</small></button>
+                  </div>
+
+                  <div class="round-control" aria-label="Controle de rodadas livres">
+                    <label for="roundAmount">
+                      <span>Rodadas livres</span>
+                      <small>Digite quantas rodadas quiser simular. Não existem mais botões com 5 ou 10 rodadas pré-definidas.</small>
+                    </label>
+                    <div class="round-control-actions">
+                      <input id="roundAmount" type="number" min="1" value="1" step="1" inputmode="numeric" />
+                      <button class="btn ghost" id="customRunBtn">Simular quantidade escolhida</button>
+                    </div>
+                  </div>
+
+                  <div class="risk-note" id="mechanicFeedback">Dinâmica atual: valor fixo. A simulação mantém vantagem da casa e perda esperada negativa para reforçar a mensagem anti-BET.</div>
+                </div>
+
+                <div class="slot-card compact-box">
+                  <div class="slot-header">
+                    <div><strong>Rodada de alerta</strong><span id="roundInfo">Nenhuma rodada simulada ainda.</span></div>
+                    <span class="tag cyan" id="moodTag">Análise</span>
+                  </div>
+                  <div class="reels" aria-live="polite">
+                    <div class="reel" id="reel1">⚠️</div>
+                    <div class="reel" id="reel2">📉</div>
+                    <div class="reel" id="reel3">🚫</div>
+                  </div>
+                  <div class="result-banner" id="resultBanner">
+                    <div>
+                      <strong>Escolha a aposta e rode quantas vezes quiser.</strong>
+                      <p>A simulação deixa o usuário repetir rodadas livremente, enquanto o código mostra por que insistir aumenta o risco.</p>
+                    </div>
+                  </div>
+                  <div class="btn-row">
+                    <button class="btn danger" id="playBtn">Apostar 1 rodada livre</button>
+                    <button class="btn ghost" id="resetBtn">Reiniciar simulador</button>
+                    <button class="btn ghost" data-go="menu">Voltar ao menu</button>
+                  </div>
+                </div>
+
+                <div class="meter-list split">
+                  <div class="metric">
+                    <div class="metric-head"><span>Chance de ganho</span><span id="chanceText">26%</span></div>
+                    <div class="bar cyan"><i id="chanceBar"></i></div>
+                  </div>
+                  <div class="metric">
+                    <div class="metric-head"><span>Vantagem da casa</span><span id="houseText">65%</span></div>
+                    <div class="bar"><i id="houseBar"></i></div>
+                  </div>
+                  <div class="metric">
+                    <div class="metric-head"><span>Perda esperada</span><span id="expectedText">-65</span></div>
+                    <div class="bar"><i id="expectedBar"></i></div>
+                  </div>
+                  <div class="metric">
+                    <div class="metric-head"><span>Penalidade aplicada</span><span id="penaltyText">4%</span></div>
+                    <div class="bar"><i id="penaltyBar"></i></div>
+                  </div>
+                  <div class="metric">
+                    <div class="metric-head"><span>Pressão para insistir</span><span id="pressureText">0%</span></div>
+                    <div class="bar"><i id="pressureBar"></i></div>
+                  </div>
+                  <div class="metric">
+                    <div class="metric-head"><span>Quase-ganhos registrados</span><span id="nearMissText">0</span></div>
+                    <div class="bar"><i id="nearMissBar"></i></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="footer-note">Protótipo didático: valores, chances e regras são simplificações criadas para desencorajar apostas e demonstrar risco de vício em BETs.</div>
+            </div>
+          </section>
+
+          <aside class="card live-code-card">
+            <div class="card-inner">
+              <div class="panel-title">
+                <div>
+                  <span class="tag cyan">Código aberto</span>
+                  <h2>A regra escondida, agora visível</h2>
+                </div>
+                <button class="btn ghost slim" id="playFromCodeBtn">Rodar 1 rodada</button>
+              </div>
+
+              <pre id="liveCode" aria-live="polite"></pre>
+
+              <div class="stack">
+                <div class="code-note">
+                  <div class="formula">
+                    <strong>Regra principal</strong>
+                    <code>chanceFinal = chanceBase - apostaAlta - insistência - riscoDaEstratégia</code>
+                  </div>
+                  <div class="formula">
+                    <strong>Leitura educativa</strong>
+                    <code>tentar recuperar perda aumenta aposta, pressão e prejuízo provável</code>
+                  </div>
+                </div>
+
+                <div class="stats-grid">
+                  <div class="stat-card"><span>Rodadas</span><strong id="rounds">0</strong></div>
+                  <div class="stat-card"><span>Perdas</span><strong id="losses">0</strong></div>
+                  <div class="stat-card"><span>Ganhos</span><strong id="wins">0</strong></div>
+                  <div class="stat-card"><span>Saldo perdido</span><strong id="lostTotal">0</strong></div>
+                  <div class="stat-card"><span>Quase ganhos</span><strong id="nearMisses">0</strong></div>
+                  <div class="stat-card"><span>Estratégia</span><strong id="strategyName">Fixa</strong></div>
+                </div>
+
+                <div class="chart-box"><canvas id="balanceChart" width="640" height="180" aria-label="Gráfico do saldo fictício"></canvas></div>
+
+                <div class="history">
+                  <strong>Últimas rodadas</strong>
+                  <div class="history-list" id="historyList">
+                    <div class="history-item"><span>Nenhuma rodada simulada.</span><b>—</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="page" id="page-awareness" aria-labelledby="awareTitle">
+        <div class="wrap page-grid awareness-grid">
+          <article class="card">
+            <div class="card-inner stack">
+              <span class="tag red">Conscientização</span>
+              <h2 id="awareTitle">Alertas contra BETs</h2>
+              <p class="lead">O protótipo agora usa uma aparência mais limpa e séria para destacar o que importa: perda provável, insistência, frustração e falsa promessa de controle.</p>
+              <div class="awareness-card-list">
+                <div class="awareness-card"><strong>1. A aposta parece escolha, mas a regra não é sua.</strong><p>O usuário escolhe o valor, porém a probabilidade, o retorno e o limite são definidos pelo sistema.</p></div>
+                <div class="awareness-card"><strong>2. Perder pouco várias vezes vira um rombo.</strong><p>Rodadas repetidas podem transformar pequenas perdas em prejuízo acumulado sem a pessoa perceber.</p></div>
+                <div class="awareness-card"><strong>3. Ganho ocasional pode virar armadilha.</strong><p>Uma vitória no meio de várias derrotas pode criar esperança falsa e vontade de continuar tentando.</p></div>
+                <div class="awareness-card"><strong>4. “Quase ganhei” também prende.</strong><p>O quase-ganho pode parecer progresso, mas na simulação ele é tratado como perda e alerta de manipulação emocional.</p></div>
+                <div class="awareness-card"><strong>5. Estratégias não mudam a desvantagem matemática.</strong><p>Dobrar, recuperar perda ou acelerar rodadas só aumenta exposição ao risco quando a regra continua desfavorável.</p></div>
+                <div class="awareness-card"><strong>6. BET não é renda, é risco.</strong><p>A promessa de dinheiro fácil pode causar ansiedade, dívida, conflito familiar e queda no desempenho escolar.</p></div>
+              </div>
+              <div class="btn-row">
+                <button class="btn danger" data-go="simulator">Ver perda e código juntos</button>
+                <button class="btn ghost" data-go="report">Abrir relatório</button>
+              </div>
+            </div>
+          </article>
+
+          <aside class="card">
+            <div class="card-inner stack">
+              <span class="eyebrow">Para apresentar em sala</span>
+              <div class="warning-band">
+                <div class="warning-icon">📌</div>
+                <div><b>Ponto principal</b><p>O projeto não ensina a apostar. Ele mostra, de forma visual, como a lógica de uma plataforma pode ser desfavorável mesmo quando parece controlável.</p></div>
+              </div>
+              <div class="info-tile"><div class="icon">🎯</div><div><strong>Objetivo</strong><p>Sensibilizar estudantes sobre risco, vício, manipulação visual, perda esperada e falsa promessa de ganho.</p></div></div>
+              <div class="info-tile"><div class="icon">👁️</div><div><strong>Algoritmo aberto</strong><p>O código fica visível para que o público entenda o que está acontecendo por trás da simulação.</p></div></div>
+              <div class="info-tile"><div class="icon">🛡️</div><div><strong>Sem cópia de marca real</strong><p>A estética é genérica, estereotipada e crítica, evitando imitar uma plataforma específica.</p></div></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="page" id="page-report" aria-labelledby="reportTitle">
+        <div class="wrap page-grid report-grid">
+          <article class="card">
+            <div class="card-inner report-box">
+              <span class="tag green">Relatório</span>
+              <h2 id="reportTitle">Resumo da simulação</h2>
+              <p class="lead">Use esta tela para discutir o resultado depois de algumas rodadas fictícias e observar como a perda pode se acumular.</p>
+              <div class="stats-grid">
+                <div class="stat-card"><span>Saldo atual</span><strong id="reportBalance">1000</strong></div>
+                <div class="stat-card"><span>Resultado líquido</span><strong id="reportNet">0</strong></div>
+                <div class="stat-card"><span>Rodadas</span><strong id="reportRounds">0</strong></div>
+                <div class="stat-card"><span>Perda esperada</span><strong id="reportExpected">0</strong></div>
+                <div class="stat-card"><span>Quase ganhos</span><strong id="reportNearMisses">0</strong></div>
+                <div class="stat-card"><span>Dinâmica usada</span><strong id="reportStrategy">Fixa</strong></div>
+              </div>
+              <div class="chart-box" style="height:180px"><canvas id="reportChart" width="640" height="220" aria-label="Gráfico do relatório"></canvas></div>
+              <div class="result-banner">
+                <div>
+                  <strong id="finalMessageTitle">Conclusão</strong>
+                  <p id="finalMessageText">Rode a simulação para gerar um resumo com base nos resultados fictícios.</p>
+                </div>
+              </div>
+              <div class="btn-row">
+                <button class="btn danger" data-go="simulator">Voltar ao simulador</button>
+                <button class="btn ghost" id="resetFromReportBtn">Reiniciar simulador</button>
+              </div>
+            </div>
+          </article>
+
+          <aside class="card">
+            <div class="card-inner stack">
+              <span class="eyebrow">Perguntas para debate</span>
+              <div class="warning-band">
+                <div class="warning-icon">🧪</div>
+                <div>
+                  <b>Testes e ajustes realizados</b>
+                  <p>Foram verificados navegação, botões, reinício, rodadas livres com quantidade escolhida pelo usuário, limite de saldo, atualização dos gráficos, texto do relatório e comportamento em tela menor.</p>
+                </div>
+              </div>
+              <span class="qa-badge">✓ Protótipo revisado</span>
+              <div class="awareness-card-list">
+                <div class="awareness-card"><strong>O que chamou mais atenção?</strong><p>A interface brilhante ou os dados de perda esperada?</p></div>
+                <div class="awareness-card"><strong>Por que mostrar o código?</strong><p>Porque a transparência ajuda a perceber que a sensação de controle pode ser fabricada.</p></div>
+                <div class="awareness-card"><strong>O que acontece quando a aposta aumenta?</strong><p>A penalidade cresce, a chance diminui, a perda esperada piora e o risco fica mais evidente.</p></div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+    const INITIAL_BALANCE = 1000;
+    const INITIAL_BET = 100;
+
+    const els = {
+      balance: $('#balance'),
+      miniBalance: $('#miniBalance'),
+      miniRounds: $('#miniRounds'),
+      betRange: $('#betRange'),
+      betOutput: $('#betOutput'),
+      strategyInfo: $('#strategyInfo'),
+      riskTag: $('#riskTag'),
+      mechanicFeedback: $('#mechanicFeedback'),
+      roundAmount: $('#roundAmount'),
+      customRunBtn: $('#customRunBtn'),
+      chanceText: $('#chanceText'),
+      chanceBar: $('#chanceBar'),
+      houseText: $('#houseText'),
+      houseBar: $('#houseBar'),
+      expectedText: $('#expectedText'),
+      expectedBar: $('#expectedBar'),
+      penaltyText: $('#penaltyText'),
+      penaltyBar: $('#penaltyBar'),
+      pressureText: $('#pressureText'),
+      pressureBar: $('#pressureBar'),
+      nearMissText: $('#nearMissText'),
+      nearMissBar: $('#nearMissBar'),
+      roundInfo: $('#roundInfo'),
+      reel1: $('#reel1'),
+      reel2: $('#reel2'),
+      reel3: $('#reel3'),
+      resultBanner: $('#resultBanner'),
+      moodTag: $('#moodTag'),
+      playBtn: $('#playBtn'),
+      playFromCodeBtn: $('#playFromCodeBtn'),
+      resetBtn: $('#resetBtn'),
+      resetFromReportBtn: $('#resetFromReportBtn'),
+      liveCode: $('#liveCode'),
+      rounds: $('#rounds'),
+      losses: $('#losses'),
+      wins: $('#wins'),
+      lostTotal: $('#lostTotal'),
+      nearMisses: $('#nearMisses'),
+      strategyName: $('#strategyName'),
+      historyList: $('#historyList'),
+      balanceChart: $('#balanceChart'),
+      reportChart: $('#reportChart'),
+      reportBalance: $('#reportBalance'),
+      reportNet: $('#reportNet'),
+      reportRounds: $('#reportRounds'),
+      reportExpected: $('#reportExpected'),
+      reportNearMisses: $('#reportNearMisses'),
+      reportStrategy: $('#reportStrategy'),
+      finalMessageTitle: $('#finalMessageTitle'),
+      finalMessageText: $('#finalMessageText')
+    };
+
+    const state = {
+      balance: INITIAL_BALANCE,
+      bet: INITIAL_BET,
+      rounds: 0,
+      wins: 0,
+      losses: 0,
+      totalLost: 0,
+      nearMisses: 0,
+      strategy: 'fixed',
+      autoRunning: false,
+      winStreak: 0,
+      lossStreak: 0,
+      history: [],
+      balanceHistory: [INITIAL_BALANCE],
+      lastRoll: '—',
+      lastResult: 'aguardando',
+      lastDelta: 0
+    };
+
+    function clamp(value, min, max){
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function percent(value){
+      return `${Math.round(value * 100)}%`;
+    }
+
+    function money(value){
+      return String(Math.round(value));
+    }
+
+    const strategyLabels = {
+      fixed: 'Fixa',
+      chase: 'Recuperar',
+      double: 'Dobrar',
+      impulse: 'Impulsiva'
+    };
+
+    const strategyDescriptions = {
+      fixed: 'Valor fixo: mesmo sem aumentar, repetir rodadas contra uma regra desfavorável desgasta o saldo aos poucos.',
+      chase: 'Recuperar perda: depois de perder, a aposta sobe. O protótipo mostra como essa reação acelera o prejuízo.',
+      double: 'Dobrar após perder: parece uma solução, mas exige saldo cada vez maior e pode zerar tudo rapidamente.',
+      impulse: 'Aposta impulsiva: usa parte alta do saldo, simulando decisão emocional após frustração ou falsa confiança.'
+    };
+
+    function getStrategyPressure(){
+      const base = { fixed: 0.06, chase: 0.22, double: 0.38, impulse: 0.48 }[state.strategy] || 0.06;
+      const lossPressure = clamp(state.lossStreak * 0.12 + state.rounds * 0.012 + (state.totalLost / INITIAL_BALANCE) * 0.22, 0, 0.62);
+      return clamp(base + lossPressure, 0, 1);
+    }
+
+    function getMinAllowedBet(){
+      if(state.balance <= 0) return 0;
+      return Math.min(10, state.balance);
+    }
+
+    function getMaxAllowedBet(){
+      if(state.balance <= 0) return 0;
+      const roundedBalance = Math.floor(state.balance / 10) * 10;
+      return Math.min(500, Math.max(getMinAllowedBet(), roundedBalance || state.balance));
+    }
+
+    function normalizeBet(value){
+      if(state.balance <= 0) return 0;
+      const min = getMinAllowedBet();
+      const max = getMaxAllowedBet();
+      const numericValue = Number.isFinite(Number(value)) ? Number(value) : min;
+      const roundedValue = max < 10 ? Math.round(numericValue) : Math.round(numericValue / 10) * 10;
+      return clamp(roundedValue, min, max);
+    }
+
+    function setBetSafely(value){
+      state.bet = normalizeBet(value);
+    }
+
+    function applyStrategyBeforeRound(){
+      if(state.rounds === 0 || state.lastDelta === 0) return;
+
+      if(state.strategy === 'fixed'){
+        setBetSafely(state.bet);
+      }
+
+      if(state.strategy === 'chase'){
+        if(state.lastDelta < 0) setBetSafely(state.bet + 60 + state.lossStreak * 20);
+        if(state.lastDelta > 0) setBetSafely(INITIAL_BET);
+      }
+
+      if(state.strategy === 'double'){
+        if(state.lastDelta < 0) setBetSafely(state.bet * 2);
+        if(state.lastDelta > 0) setBetSafely(INITIAL_BET);
+      }
+
+      if(state.strategy === 'impulse'){
+        if(state.lastDelta < 0) setBetSafely(state.balance * 0.42);
+        if(state.lastDelta > 0) setBetSafely(state.bet + 90);
+      }
+    }
+
+    function getStrategyFeedback(snapshot){
+      const risk = snapshot.impulsePressure;
+      if(state.strategy === 'fixed') return `Dinâmica atual: valor fixo. Mesmo sem “estratégia”, a perda esperada desta rodada é ${snapshot.expectedValue} moeda(s), mostrando que repetir já é perigoso.`;
+      if(state.strategy === 'chase') return `Dinâmica atual: recuperar perda. O protótipo aumenta a aposta após derrota; a pressão para insistir está em ${percent(risk)} e a chance final em ${percent(snapshot.finalChance)}.`;
+      if(state.strategy === 'double') return `Dinâmica atual: dobrar após perder. A aposta pode crescer rápido demais para o saldo suportar, mostrando por que essa lógica é uma armadilha.`;
+      return `Dinâmica atual: aposta impulsiva. A simulação usa parte alta do saldo para mostrar como decisão emocional transforma perda pequena em queda brusca.`;
+    }
+
+    function getSnapshot(){
+      const safeBalance = Math.max(state.balance, 1);
+      const ratio = clamp(state.bet / safeBalance, 0, 1.5);
+      const chanceBase = 0.30;
+      const highBetPenalty = clamp(ratio * 0.42, 0, 0.38);
+      const insistencePenalty = clamp((state.rounds * 0.010) + (state.lossStreak * 0.018), 0, 0.26);
+      const strategyPressure = getStrategyPressure();
+      const strategyPenalty = clamp(strategyPressure * 0.18, 0, 0.18);
+      const baitBonus = state.winStreak > 0 ? clamp(state.winStreak * 0.004, 0, 0.012) : 0;
+      const finalChance = clamp(chanceBase - highBetPenalty - insistencePenalty - strategyPenalty + baitBonus, 0.02, 0.28);
+      const payoutMultiplier = 1.35;
+      const profitIfWin = Math.round(state.bet * (payoutMultiplier - 1));
+      const expectedValue = Math.round((finalChance * profitIfWin) - ((1 - finalChance) * state.bet));
+      const expectedReturn = clamp((finalChance * payoutMultiplier), 0, 1);
+      const houseEdge = clamp(1 - expectedReturn, 0, 1);
+      const totalPenalty = clamp(highBetPenalty + insistencePenalty + strategyPenalty, 0, 1);
+      const nearMissWindow = 0.065;
+      const impulsePressure = clamp(strategyPressure + ratio * 0.25 + state.nearMisses * 0.025, 0, 1);
+
+      return { ratio, chanceBase, highBetPenalty, insistencePenalty, strategyPressure, strategyPenalty, baitBonus, finalChance, payoutMultiplier, profitIfWin, expectedValue, expectedReturn, houseEdge, totalPenalty, nearMissWindow, impulsePressure };
+    }
+
+    function setPage(name){
+      $$('.page').forEach(page => page.classList.toggle('active', page.id === `page-${name}`));
+      $$('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.go === name));
+      requestAnimationFrame(() => {
+        drawChart(els.balanceChart, state.balanceHistory);
+        drawChart(els.reportChart, state.balanceHistory);
+      });
+    }
+
+    function updateChipState(){
+      $$('.chip').forEach(chip => chip.classList.toggle('active', Number(chip.dataset.bet) === state.bet));
+    }
+
+    function updateMeters(snapshot){
+      els.chanceText.textContent = percent(snapshot.finalChance);
+      els.chanceBar.style.width = percent(snapshot.finalChance);
+
+      els.houseText.textContent = percent(snapshot.houseEdge);
+      els.houseBar.style.width = percent(snapshot.houseEdge);
+
+      els.expectedText.textContent = `${snapshot.expectedValue >= 0 ? '+' : ''}${snapshot.expectedValue}`;
+      els.expectedBar.style.width = percent(clamp(Math.abs(snapshot.expectedValue) / Math.max(state.bet, 1), 0, 1));
+
+      els.penaltyText.textContent = percent(snapshot.totalPenalty);
+      els.penaltyBar.style.width = percent(snapshot.totalPenalty);
+
+      els.pressureText.textContent = percent(snapshot.impulsePressure);
+      els.pressureBar.style.width = percent(snapshot.impulsePressure);
+
+      els.nearMissText.textContent = state.nearMisses;
+      els.nearMissBar.style.width = percent(clamp(state.nearMisses / 8, 0, 1));
+    }
+
+    function updateCode(snapshot){
+      const html = `<span class="ok">// Aposta Perdida — código didático em tempo real</span>
+<span class="ok">// Não é jogo real. É protótipo educativo contra BETs.</span>
+
+const saldo = <span class="hot">${state.balance}</span>;
+const aposta = <span class="hot">${state.bet}</span>;
+const rodadas = <span class="hot">${state.rounds}</span>;
+const perdasSeguidas = <span class="hot">${state.lossStreak}</span>;
+const ganhosSeguidos = <span class="hot">${state.winStreak}</span>;
+const estrategiaSimulada = <span class="hot">"${strategyLabels[state.strategy]}"</span>;
+const quaseGanhos = <span class="hot">${state.nearMisses}</span>;
+
+const chanceBase = <span class="hot">${percent(snapshot.chanceBase)}</span>;
+const proporcaoApostaSaldo = aposta / Math.max(saldo, 1);
+
+<span class="danger-code">const penalidadePorApostaAlta = limitar(
+  proporcaoApostaSaldo * 0.42,
+  0,
+  0.38
+);</span>
+
+<span class="danger-code">const penalidadePorInsistencia = limitar(
+  rodadas * 0.010 + perdasSeguidas * 0.018,
+  0,
+  0.26
+);</span>
+
+<span class="danger-code">const penalidadeDaEstrategia = limitar(
+  pressaoParaInsistir * 0.18,
+  0,
+  0.18
+);</span>
+
+<span class="danger-code">const chanceFinal = limitar(
+  chanceBase
+  - penalidadePorApostaAlta
+  - penalidadePorInsistencia
+  - penalidadeDaEstrategia,
+  0.02,
+  0.28
+);</span>
+
+<span class="muted-code">// Valores atuais calculados pelo protótipo:</span>
+proporcaoApostaSaldo = <span class="hot">${percent(snapshot.ratio)}</span>
+penalidadePorApostaAlta = <span class="hot">${percent(snapshot.highBetPenalty)}</span>
+penalidadePorInsistencia = <span class="hot">${percent(snapshot.insistencePenalty)}</span>
+penalidadeDaEstrategia = <span class="hot">${percent(snapshot.strategyPenalty)}</span>
+pressaoParaInsistir = <span class="hot">${percent(snapshot.impulsePressure)}</span>
+chanceFinal = <span class="hot">${percent(snapshot.finalChance)}</span>
+vantagemDaCasa = <span class="danger-code">${percent(snapshot.houseEdge)}</span>
+perdaEsperadaNaRodada = <span class="danger-code">${snapshot.expectedValue} moedas</span>
+
+<span class="muted-code">// Última rodada:</span>
+numeroAleatorio = <span class="hot">${state.lastRoll}</span>
+resultado = <span class="hot">${state.lastResult}</span>
+variacaoSaldo = <span class="hot">${state.lastDelta >= 0 ? '+' : ''}${state.lastDelta}</span>
+
+<span class="muted-code">// Leitura educativa:</span>
+se tentarRecuperarPerda == true então
+  aposta sobe, pressão sobe, risco sobe;`;
+
+      els.liveCode.innerHTML = html;
+    }
+
+    function updateHistory(){
+      if(state.history.length === 0){
+        els.historyList.innerHTML = '<div class="history-item"><span>Nenhuma rodada simulada.</span><b>—</b></div>';
+        return;
+      }
+      els.historyList.innerHTML = state.history.slice(0, 6).map(item => `
+        <div class="history-item"><span>${item.text}</span><b>${item.delta >= 0 ? '+' : ''}${item.delta}</b></div>
+      `).join('');
+    }
+
+    function updateReport(snapshot){
+      const net = state.balance - INITIAL_BALANCE;
+      els.reportBalance.textContent = money(state.balance);
+      els.reportNet.textContent = `${net >= 0 ? '+' : ''}${money(net)}`;
+      els.reportRounds.textContent = state.rounds;
+      els.reportExpected.textContent = `${snapshot.expectedValue >= 0 ? '+' : ''}${snapshot.expectedValue}`;
+      els.reportNearMisses.textContent = state.nearMisses;
+      els.reportStrategy.textContent = strategyLabels[state.strategy];
+
+      if(state.rounds === 0){
+        els.finalMessageTitle.textContent = 'Conclusão';
+        els.finalMessageText.textContent = 'Rode a simulação para gerar um resumo com base nos resultados fictícios.';
+      } else if(state.balance <= 0){
+        els.finalMessageTitle.textContent = 'Saldo zerado no teste';
+        els.finalMessageText.textContent = `Após ${state.rounds} rodada(s), o saldo fictício chegou a zero. Dinâmica usada: ${strategyLabels[state.strategy]}. Esse resultado reforça a mensagem do protótipo: insistir em regras desfavoráveis pode destruir o saldo rapidamente.`;
+      } else if(net < 0){
+        els.finalMessageTitle.textContent = 'A perda apareceu no saldo';
+        els.finalMessageText.textContent = `Após ${state.rounds} rodada(s), o saldo fictício caiu ${Math.abs(net)} moeda(s). Dinâmica usada: ${strategyLabels[state.strategy]}. Quase-ganhos registrados: ${state.nearMisses}. A mensagem é que insistência, recuperação de perdas e rodadas rápidas aumentam exposição ao prejuízo.`;
+      } else {
+        els.finalMessageTitle.textContent = 'Mesmo quando ganha, o risco continua';
+        els.finalMessageText.textContent = `O saldo ainda não caiu, mas a chance final atual é ${percent(snapshot.finalChance)} e a vantagem da casa aparece como ${percent(snapshot.houseEdge)}. Ganhos pontuais podem incentivar insistência.`;
+      }
+    }
+
+    function drawChart(canvas, data){
+      if(!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      ctx.fillStyle = 'rgba(255,255,255,.03)';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = 'rgba(255,255,255,.10)';
+      ctx.lineWidth = 1;
+      for(let i = 1; i < 4; i++){
+        const y = (h / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      const min = Math.min(...data, INITIAL_BALANCE - 500);
+      const max = Math.max(...data, INITIAL_BALANCE + 250);
+      const range = Math.max(max - min, 1);
+      const points = data.map((value, index) => {
+        const x = data.length === 1 ? 0 : (index / (data.length - 1)) * (w - 14) + 7;
+        const y = h - 10 - ((value - min) / range) * (h - 20);
+        return {x, y};
+      });
+
+      ctx.strokeStyle = 'rgba(125,211,252,.95)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      points.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+      ctx.stroke();
+
+      const last = points[points.length - 1];
+      if(last){
+        ctx.fillStyle = '#93c5fd';
+        ctx.beginPath();
+        ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function updateUI(){
+      setBetSafely(state.bet);
+      const snapshot = getSnapshot();
+      const minBet = getMinAllowedBet();
+      const maxBet = getMaxAllowedBet();
+      const isBroke = state.balance <= 0;
+
+      els.balance.textContent = money(state.balance);
+      els.miniBalance.textContent = money(state.balance);
+      els.miniRounds.textContent = state.rounds;
+      els.betOutput.textContent = state.bet;
+      els.betRange.min = minBet;
+      els.betRange.max = maxBet;
+      els.betRange.step = maxBet < 10 ? 1 : 10;
+      els.betRange.disabled = isBroke;
+      els.betRange.value = state.bet;
+
+      els.playBtn.disabled = isBroke || state.autoRunning;
+      els.playFromCodeBtn.disabled = isBroke || state.autoRunning;
+      els.roundAmount.disabled = isBroke || state.autoRunning;
+      els.customRunBtn.disabled = isBroke || state.autoRunning;
+      $$('.chip').forEach(chip => chip.disabled = isBroke);
+      els.rounds.textContent = state.rounds;
+      els.losses.textContent = state.losses;
+      els.wins.textContent = state.wins;
+      els.lostTotal.textContent = money(state.totalLost);
+      els.nearMisses.textContent = state.nearMisses;
+      els.strategyName.textContent = strategyLabels[state.strategy];
+      els.strategyInfo.textContent = strategyDescriptions[state.strategy];
+      els.mechanicFeedback.textContent = getStrategyFeedback(snapshot);
+      els.riskTag.textContent = snapshot.impulsePressure > 0.72 ? 'Risco crítico' : snapshot.impulsePressure > 0.42 ? 'Risco alto' : 'Risco médio';
+
+      updateChipState();
+      $$('.strategy-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.strategy === state.strategy));
+      updateMeters(snapshot);
+      updateCode(snapshot);
+      updateHistory();
+      updateReport(snapshot);
+      drawChart(els.balanceChart, state.balanceHistory);
+      drawChart(els.reportChart, state.balanceHistory);
+    }
+
+    function animateReels(result){
+      const iconSets = {
+        ganho: ['💰','⚠️','🧠'],
+        perda: ['📉','🚫','💸'],
+        quase: ['💰','💰','📉']
+      };
+      const icons = iconSets[result] || iconSets.perda;
+      [els.reel1, els.reel2, els.reel3].forEach((reel, index) => {
+        reel.textContent = icons[index];
+        reel.classList.remove('spin');
+        void reel.offsetWidth;
+        reel.classList.add('spin');
+      });
+    }
+
+    function playRound(){
+      if(state.autoRunning && state.balance <= 0) return;
+
+      if(state.balance <= 0){
+        els.resultBanner.innerHTML = '<div><strong>Saldo fictício zerado.</strong><p>O simulador chegou ao limite. Reinicie para mostrar novamente como a perda acumulada acontece.</p></div>';
+        els.moodTag.textContent = 'Alerta';
+        return;
+      }
+
+      applyStrategyBeforeRound();
+      setBetSafely(state.bet);
+
+      if(state.bet <= 0){
+        els.resultBanner.innerHTML = '<div><strong>Saldo fictício zerado.</strong><p>Sem saldo disponível, o simulador bloqueia novas rodadas para evitar valores impossíveis.</p></div>';
+        els.moodTag.textContent = 'Alerta';
+        updateUI();
+        return;
+      }
+
+      const snapshot = getSnapshot();
+      const roll = Math.random();
+      const won = roll < snapshot.finalChance;
+      const nearMiss = !won && roll < snapshot.finalChance + snapshot.nearMissWindow;
+      let delta;
+
+      state.rounds += 1;
+      state.lastRoll = roll.toFixed(3);
+
+      if(won){
+        delta = snapshot.profitIfWin;
+        state.balance += delta;
+        state.wins += 1;
+        state.winStreak += 1;
+        state.lossStreak = 0;
+        state.lastResult = 'ganho fictício';
+        els.resultBanner.innerHTML = `<div><strong>Ganho fictício de ${delta} moedas.</strong><p>Vitórias pontuais são tratadas como isca psicológica: dão esperança, mas não removem a desvantagem matemática da simulação.</p></div>`;
+        els.moodTag.textContent = 'Isca';
+        animateReels('ganho');
+      } else {
+        const actualLoss = Math.min(state.bet, state.balance);
+        delta = -actualLoss;
+        state.balance = Math.max(0, state.balance - actualLoss);
+        state.losses += 1;
+        state.totalLost += actualLoss;
+        state.lossStreak += 1;
+        state.winStreak = 0;
+
+        if(nearMiss){
+          state.nearMisses += 1;
+          state.lastResult = 'quase ganho, mas perda';
+          els.resultBanner.innerHTML = `<div><strong>Quase ganho não é ganho: perda de ${actualLoss} moedas.</strong><p>O protótipo registra “quase-ganhos” para mostrar como essa sensação pode prender a pessoa na próxima rodada.</p></div>`;
+          els.moodTag.textContent = 'Quase';
+          animateReels('quase');
+        } else {
+          state.lastResult = 'perda fictícia';
+          els.resultBanner.innerHTML = `<div><strong>Perda fictícia de ${actualLoss} moedas.</strong><p>Essa é a mensagem central: repetir rodadas contra uma regra desfavorável tende a derrubar o saldo rapidamente.</p></div>`;
+          els.moodTag.textContent = 'Risco';
+          animateReels('perda');
+        }
+      }
+
+      state.lastDelta = delta;
+      state.balanceHistory.push(state.balance);
+      state.history.unshift({ text:`Rodada ${state.rounds}: ${state.lastResult} • ${strategyLabels[state.strategy]}`, delta });
+      els.roundInfo.textContent = `Rodada ${state.rounds} • número aleatório ${state.lastRoll}`;
+      updateUI();
+    }
+
+    function delay(ms){
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function getChosenRoundCount(){
+      const typedValue = Number(els.roundAmount.value);
+      const chosenRounds = Math.floor(Number.isFinite(typedValue) ? typedValue : 1);
+      return clamp(chosenRounds, 1, 9999);
+    }
+
+    async function autoRun(count){
+      if(state.autoRunning) return;
+      const totalRounds = clamp(Math.floor(Number(count) || 1), 1, 9999);
+      state.autoRunning = true;
+      els.moodTag.textContent = 'Livre';
+      updateUI();
+      for(let i = 0; i < totalRounds; i++){
+        if(state.balance <= 0) break;
+        playRound();
+        await delay(240);
+      }
+      state.autoRunning = false;
+      updateUI();
+    }
+
+    function resetSimulator(){
+      state.balance = INITIAL_BALANCE;
+      state.bet = INITIAL_BET;
+      state.rounds = 0;
+      state.wins = 0;
+      state.losses = 0;
+      state.totalLost = 0;
+      state.nearMisses = 0;
+      state.strategy = 'fixed';
+      state.autoRunning = false;
+      state.winStreak = 0;
+      state.lossStreak = 0;
+      state.history = [];
+      state.balanceHistory = [INITIAL_BALANCE];
+      state.lastRoll = '—';
+      state.lastResult = 'aguardando';
+      state.lastDelta = 0;
+      els.roundAmount.value = 1;
+
+      els.reel1.textContent = '⚠️';
+      els.reel2.textContent = '📉';
+      els.reel3.textContent = '🚫';
+      els.roundInfo.textContent = 'Nenhuma rodada simulada ainda.';
+      els.moodTag.textContent = 'Análise';
+      els.resultBanner.innerHTML = '<div><strong>Simulador reiniciado.</strong><p>Saldo, aposta, rodadas, histórico, gráfico e código voltaram ao estado inicial.</p></div>';
+      updateUI();
+    }
+
+    $$('.nav-btn,[data-go]').forEach(btn => {
+      btn.addEventListener('click', () => setPage(btn.dataset.go));
+    });
+
+    els.betRange.addEventListener('input', () => {
+      setBetSafely(els.betRange.value);
+      updateUI();
+    });
+
+    $$('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        setBetSafely(chip.dataset.bet);
+        updateUI();
+      });
+    });
+
+    $$('.strategy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.strategy = btn.dataset.strategy;
+        updateUI();
+      });
+    });
+
+    els.customRunBtn.addEventListener('click', () => autoRun(getChosenRoundCount()));
+    els.roundAmount.addEventListener('input', () => {
+      els.roundAmount.value = getChosenRoundCount();
+    });
+
+    els.playBtn.addEventListener('click', playRound);
+    els.playFromCodeBtn.addEventListener('click', playRound);
+    els.resetBtn.addEventListener('click', resetSimulator);
+    els.resetFromReportBtn.addEventListener('click', resetSimulator);
+
+    window.addEventListener('resize', () => {
+      drawChart(els.balanceChart, state.balanceHistory);
+      drawChart(els.reportChart, state.balanceHistory);
+    });
+
+    updateUI();
+  </script>
+</body>
+</html>
